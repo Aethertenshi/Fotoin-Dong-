@@ -19,11 +19,47 @@ class TransformSprite:
         self.rotation = 0.0        # Rotation in degrees (counter-clockwise)
         self.scale = 1.0           # Scale factor (1.0 is original size)
 
-    def draw(self, screen: pygame.Surface):
+    def draw(self, screen: pygame.Surface, cover: bool = False):
         """
-        Applies scaling, rotation, and alpha to the original image and draws it
-        centered at (self.x, self.y) to prevent off-center wobbling.
+        Applies scaling, rotation, and alpha to the original image and draws it.
+        
+        Parameters:
+        - screen: The surface to blit onto.
+        - cover: If True, scales the image preserving aspect ratio to completely cover
+                 the target screen, centering and cropping any excess.
         """
+        if cover:
+            target_width, target_height = screen.get_size()
+            orig_width, orig_height = self.original_image.get_size()
+            
+            # Calculate scale factor to completely fill target surface (object-fit: cover)
+            scale_x = target_width / orig_width
+            scale_y = target_height / orig_height
+            scale = max(scale_x, scale_y)
+            
+            new_width = int(orig_width * scale)
+            new_height = int(orig_height * scale)
+            
+            if new_width <= 0 or new_height <= 0:
+                return
+                
+            # 1. Scale original image
+            scaled_image = pygame.transform.scale(self.original_image, (new_width, new_height))
+            
+            # 2. Crop centered subsurface to target resolution
+            crop_x = (new_width - target_width) // 2
+            crop_y = (new_height - target_height) // 2
+            
+            # Subsurface yields a cropped view sharing pixel data with parent
+            cropped_image = scaled_image.subsurface((crop_x, crop_y, target_width, target_height))
+            
+            # 3. Apply Alpha Transparency
+            cropped_image.set_alpha(max(0, min(255, int(self.alpha))))
+            
+            # 4. Draw centered to cover the screen
+            screen.blit(cropped_image, (0, 0))
+            return
+
         # Get original dimensions
         orig_width, orig_height = self.original_image.get_size()
         
@@ -39,17 +75,12 @@ class TransformSprite:
         scaled_image = pygame.transform.scale(self.original_image, (new_width, new_height))
         
         # 2. Rotate the image (around its center)
-        # Note: pygame.transform.rotate rotates counter-clockwise.
         rotated_image = pygame.transform.rotate(scaled_image, self.rotation)
         
         # 3. Apply Alpha Transparency
-        # set_alpha works on surfaces; since rotated_image is a new surface from transform,
-        # it is safe to set its alpha directly.
         rotated_image.set_alpha(max(0, min(255, int(self.alpha))))
         
         # 4. Get the rect of the final image and center it at (self.x, self.y)
-        # This is critical! A rotated image has a larger bounding box than the original,
-        # so aligning by the center prevents the sprite from "wobbling" or shifting position.
         rect = rotated_image.get_rect()
         rect.center = (int(self.x), int(self.y))
         

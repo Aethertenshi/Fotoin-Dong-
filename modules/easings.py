@@ -74,6 +74,9 @@ class Tween:
         self.easing_func = _EASING_MAP.get(easing, _EASING_MAP[Easings.Linear])[direction]
         self.is_playing = True
         
+        if self.on_update:
+            self.on_update(self.start_value)
+            
         if self not in _active_tweens:
             _active_tweens.append(self)
 
