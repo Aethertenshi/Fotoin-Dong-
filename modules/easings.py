@@ -1,25 +1,16 @@
-from enum import Enum, auto
+from enum import Enum
 from typing import Callable
 
 # --- ENUMS ---
-class Easings(Enum):
-    Linear = auto()
-    Quad = auto()
-    Cubic = auto()
-
-class Direction(Enum):
-    In = auto()
-    Out = auto()
-    InOut = auto()
 class Easings(Enum):
     Linear = 0
     Quad = 1
     Cubic = 2
 
 class Direction(Enum):
-    Out = 0,
-    In = 1,
-    InOut = 2,
+    Out = 0
+    In = 1
+    InOut = 2
 
 # --- 2. EASING MATH ---
 # These functions take a value 't' (between 0.0 and 1.0) and return the eased 't'
@@ -58,7 +49,7 @@ _active_tweens = []
 class Tween:
     def __init__(self, on_update: Callable[[float], None] = None, on_complete: Callable[[], None] = None):
         """
-        on_update: A function that takes the current interpolated value (e.g., to move a sprite).
+        on_update: A function that takes the current interpolated value.
         on_complete: A function that fires when the tween finishes.
         """
         self.time = 0.0
@@ -71,8 +62,6 @@ class Tween:
         
         self.on_update = on_update
         self.on_complete = on_complete
-        
-        _active_tweens.append(self)
 
     def Start(self, duration: float, startValue: float, endValue: float, easing: Easings, direction: Direction):
         self.duration = duration
@@ -84,6 +73,9 @@ class Tween:
         # Grab the correct math function from the dictionary
         self.easing_func = _EASING_MAP.get(easing, _EASING_MAP[Easings.Linear])[direction]
         self.is_playing = True
+        
+        if self not in _active_tweens:
+            _active_tweens.append(self)
 
     def Update(self, dt: float):
         if not self.is_playing:
@@ -91,10 +83,12 @@ class Tween:
             
         self.time += dt
         
-        # Check if tween is finished
-        if self.time >= self.duration:
+        # Guard against division by zero if duration is 0 or negative
+        if self.duration <= 0.0 or self.time >= self.duration:
             self.time = self.duration
             self.is_playing = False
+            if self in _active_tweens:
+                _active_tweens.remove(self)
             if self.on_update:
                 self.on_update(self.end_value)
             if self.on_complete:
@@ -108,4 +102,3 @@ class Tween:
         
         if self.on_update:
             self.on_update(current_value)
-
