@@ -1,5 +1,8 @@
-/.vscode
-/.venv
+.vscode
+.venv
 textures/*
+!textures/.gitkeep
 places/*
+!places/.gitkeep
 sounds/*
+!sounds/.gitkeep
