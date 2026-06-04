@@ -1,5 +1,5 @@
 /.vscode
 /.venv
-/textures
-/places
-/sounds
+textures/*
+places/*
+sounds/*
